@@ -89,22 +89,49 @@ d3.csv('assets/data/data.csv').then(csvData => {
         data.age = +data.age
     });
 
-
 // Assigning min & max values
     var xMin = d3.min(data.forEach(d=>d[xValue])*.9);
     var xMax = d3.max(data.forEach(d=>d[xValue])*1.1);
     var yMin = d3.min(data.forEach(d=>d[yValue])*.9);
     var yMax = d3.max(data.forEach(d=>d[yValue])*1.1);
 
-
 // Create Scales
     var xScale = d3.scaleLinear().domain([xMin,xMax]).range([width*.16, height*.16]);
     var yScale = d3.scaleLinear().domain([xMin,xMax]).range([width*.10, height*.16]);
 
 // create path
+text.append("scatter")
+    .attr("d",(data))
+    .attr("fill","none")
+    .attr("stroke", "green");
 
 // append circles to data points
-var circlesGroup = chartGroup.selectAll("circle").data(data)
+var circlesGroup = text.selectAll("circle").data(data)
+.data(data)
+.enter()
+.append("circle")
+.attr("cx", d => xScale(d.poverty))
+.attr("cy", d => yScale(d.obesity))
+.attr("r", "10")
+.attr("fill", "gold")
+.attr("stroke-width", "1")
+.attr("stroke", "black");
+
+
+
+// var circlesGroup = text.selectAll("circle").data(data)
+
+// // Add dots
+// svg.append('g')
+// .selectAll("circles")
+// .data(data)
+// .enter()
+// .append("circlesGroup")
+//     .attr("cx", function (d) { return x('data.poverty'); } )
+//     .attr("cy", function (d) { return y(d.obesity); } )
+//     .attr("r", 1.5)
+//     .style("fill", "#69b3a2")
+
 
 
     xAxis.call(xScale)
