@@ -1,142 +1,215 @@
-var data;
-var width = parseFloat(d3.select('#scatter').style('width'));
-var height = width*.66;
-var radius = width*.02;
+// set the dimensions and margins of the graph
 
-var svg = d3.select('#scatter').append('svg');
+xValue = "age"
+yValue = "smokes"
+labelValue = "abbr"
 
-// Set the dimensions and margin of the graph
-svg
-    .style('border','2px solid black')
-    .style('width',width)
+var data = [];
+var animationDuration = 1000;
+
+// margin setup
+var margin = {top: 10, right: 30, bottom: 150, left: 150},
+    width = 1060 - margin.left - margin.right,
+    height = 600 - margin.top - margin.bottom;
+
+// function used for updating circles group with new tooltip
+var tooltip = d3.tip()
+      .attr("class", "d3-tip")
+      .offset([-8, 0])
+      .html((d) => `State: <b>${d.state}</b> </br> Smokers: <b>${d.smokes}%</b> </br> Age (Median): <b>${d.age}</b> </br> Obesity: <b>${d.obesity}%</b> </br> Healthcare: <b>${d.healthcare}%</b> </br> Income: $<b>${d.income}</b>`);
+    
+var svg = d3.select('#scatter')
+  .append("svg").call(tooltip).style("border", "2px solid black")
+    .style("background", "#f5f2f0")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+svg.style('width',width)
     .style('height',height)
+    .style("font-family", "Arial")
+    .style("font-size", "8pt")
 
-// append the svg object to the body of the page
-var text = svg.append('g');
 
- svg.append('g')
-    .call(d3.axisLeft(d3.scaleLinear().range([height, 0])));
+function redraw(oldX, oldY, xValue, yValue){
 
-// Add X variable labels
-var xText = text.append('g').attr('transform',`translate(${width/2}, ${height})`);
+    // Assigning min & max values
+    
+    svg.selectAll(".chart-object-temp").remove(); // destroy all that existed previously
 
-xText
-    .append('text')
-    .text('In Poverty (%)')
-    .attr('class','aText x active')
-    .attr('y',-height*.15)
-    .attr('dataId', 'poverty')
+    var xMin = d3.min(data.map(d=>d[oldX])) * .9;
+    var xMax = d3.max(data.map(d=>d[oldX])) * 1.1;
+    var yMin = d3.min(data.map(d=>d[oldY])) * .9;
+    var yMax = d3.max(data.map(d=>d[oldY])) * 1.1;
+    
+    // Add X axis
+    var x = d3.scaleLinear()
+        .domain([xMin, xMax])
+        .range([ 0, width ]);
+    
+    // Add X Axis scale 
+    var scaleX = svg.append("g")
+        .attr("class", "chart-object-temp")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x))
+    
+    // Add Y axis
+    var y = d3.scaleLinear()
+        .domain([yMin, yMax])
+        .range([height, 0]);
+      
+    var scaleY = svg.append("g")
+        .attr("class", "chart-object-temp")
+        .call(d3.axisLeft(y))
 
-xText
-    .append('text')
-    .text('Age (Median)')
-    .attr('class','aText x inactive')
-    .attr('y',-height*.10)
-    .attr('dataId', 'age')
+    var circles = svg.append('g')
+        .selectAll("dot")
+        .data(data)
+        .enter().append("circle")
+        .attr("class", "chart-object-temp")
+        .attr("cx", function (d) { return x(d[oldX]); } )
+        .attr("cy", function (d) { return y(d[oldY]); } )
+        .attr("r", 10)
+        .attr("stroke","black")
+        .attr("fill", "#f5f2f0");
+     
+     var texts = svg.append('g')
+        .selectAll(null)
+        .data(data)
+        .enter().append("text")
+        .attr("class", "chart-object-temp")
+        .attr("x", function (d) { return x(d[oldX]) - 5; } )
+        .attr("y", function (d) { return y(d[oldY]) + 3; } )
+        .style("cursor", "pointer")
+        .text((d) => d[labelValue])
+        .style("font-size", "6pt")
+        .on('mouseover', tooltip.show)
+        .on('mouseout', tooltip.hide);
 
-xText
-    .append('text')
-    .text('Household Income (Median)')
-    .attr('class','aText x inactive')
-    .attr('y',-height*.05)
-    .attr('dataId', 'income')
+    xMin = d3.min(data.map(d=>d[xValue])) * .9;
+    xMax = d3.max(data.map(d=>d[xValue])) * 1.1;
+    yMin = d3.min(data.map(d=>d[yValue])) * .9;
+    yMax = d3.max(data.map(d=>d[yValue])) * 1.1;
+    
+    // Add X axis
+    x = d3.scaleLinear()
+        .domain([xMin, xMax])
+        .range([ 0, width ]);
+   
+    // Add Y axis
+    var y = d3.scaleLinear()
+        .domain([yMin, yMax])
+        .range([height, 0]);
+      
+    scaleY.transition()
+        .duration(animationDuration)
+        .call(d3.axisLeft(y))
 
-//Add Y variable labels
-yText = svg.append("g")
-.attr("transform", `translate(0,${height/2})rotate(-90)`)
-.style("text-anchor", "middle")
+    scaleX.transition()
+        .duration(animationDuration)
+        .call(d3.axisBottom(x))
 
-yText
-    .append('text')
-    .text('Obese (%)')
-    .attr('class','aText y active')
-    .attr('y',width*.04)
-    .attr('dataId', 'obesity')
+    circles.transition()
+        .duration(animationDuration)
+        .attr("cx", function (d) { return x(d[xValue]); })
+        .attr("cy", function (d) { return y(d[yValue]); })
 
-yText
-    .append('text')
-    .text('Smokes (%)')
-    .attr('class','aText y inactive')
-    .attr('y',width*.08)
-    .attr('dataId', 'smokes')
+    texts.transition()
+        .duration(animationDuration)
+        .attr("x", function (d) { return x(d[xValue]) - 5; } )
+        .attr("y", function (d) { return y(d[yValue]) + 3; } )
+};
 
-yText
-    .append('text')
-    .text('Lacks Healthcare (%)')
-    .attr('class','aText y inactive')
-    .attr('y',width*.12)
-    .attr('dataId', 'healthcare')
+// Sync axis w/ value
+function changeAxis(element, key, isYAxis){
+    var oldX = xValue
+    var oldY = yValue
+    if (isYAxis) {
+        yValue = key
+    } else {
+        xValue = key
+    }
+    d3.selectAll(`.axis-control.active.${isYAxis ? 'y' : 'x'}`).attr("class", `axis-control ${isYAxis ? 'y' : 'x'}`)
+    d3.select(element[0]).attr("class", `axis-control active ${isYAxis ? 'y' : 'x'}`)
+    redraw(oldX, oldY, xValue, yValue)
+}
 
-// Add X & Y axis
-var yAxis = svg.append('g').attr('transform',`translate(${width*.16},${height/2})`);
-var xAxis = svg.append('g').attr('transform',`translate(${width/2},${height*.75})`);
-
-// Filter for selected variable 
-var yValue = d3.selectAll('.y').filter('.active').attr('dataId');
-var xValue = d3.selectAll('.x').filter('.active').attr('dataId');
-
-// Read the data
-d3.csv('assets/data/data.csv').then(csvData => {
+//Read the data
+d3.csv("assets/data/data.csv").then((csvData) => {
+    
     data = csvData;
 
-    // Convert String to Integer
-    data.forEach(data => {
-        data.poverty = +data.poverty,
-        data.healthcare = +data.healthcare,
-        data.obesity = +data.obesity,
-        data.income = +data.income,
-        data.smokes = +data.smokes,
-        data.age = +data.age
+    data = data.map(d => {
+        d.poverty = +d.poverty,
+        d.healthcare = +d.healthcare,
+        d.obesity = +d.obesity,
+        d.income = +d.income,
+        d.smokes = +d.smokes,
+        d.age = +d.age
+        return d;
     });
 
-// Assigning min & max values
-    var xMin = d3.min(data.forEach(d=>d[xValue])*.9);
-    var xMax = d3.max(data.forEach(d=>d[xValue])*1.1);
-    var yMin = d3.min(data.forEach(d=>d[yValue])*.9);
-    var yMax = d3.max(data.forEach(d=>d[yValue])*1.1);
+// text labels for the x axis
+    svg.append("text")             
+        .attr("transform",
+            "translate(" + (width / 2) + " ," + 
+                           (height + margin.top + 30) + ")")
+        .style("text-anchor", "middle")
+        .text("Age (Median)")
+        .attr("class", "axis-control active x")
+        .on("click", (datum, i, element) => changeAxis(element, "age", false))
 
-// Create Scales
-    var xScale = d3.scaleLinear().domain([xMin,xMax]).range([width*.16, height*.16]);
-    var yScale = d3.scaleLinear().domain([xMin,xMax]).range([width*.10, height*.16]);
+    svg.append("text")             
+        .attr("transform",
+            "translate(" + (width / 2) + " ," + 
+                           (height + margin.top + 60) + ")")
+        .style("text-anchor", "middle")
+        .text("Poverty %")
+        .attr("class", "axis-control x")
+        .on("click", (datum, i, element) => changeAxis(element, "poverty", false))
 
-// create path
-text.append("scatter")
-    .attr("d",(data))
-    .attr("fill","none")
-    .attr("stroke", "green");
+    svg.append("text")             
+        .attr("transform",
+            "translate(" + (width / 2) + " ," + 
+                           (height + margin.top + 90 ) + ")")
+        .style("text-anchor", "middle")
+        .text("Income ($)")
+        .attr("class", "axis-control x")
+        .on("click", (datum, i, element) => changeAxis(element, "income", false))
 
-// append circles to data points
-var circlesGroup = text.selectAll("circle").data(data)
-.data(data)
-.enter()
-.append("circle")
-.attr("cx", d => xScale(d.poverty))
-.attr("cy", d => yScale(d.obesity))
-.attr("r", "10")
-.attr("fill", "gold")
-.attr("stroke-width", "1")
-.attr("stroke", "black");
+      // text labels for the y axis
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - margin.left + 10)
+        .attr("x",0 - (height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("Smokes %")
+        .attr("class", "axis-control active y")
+        .on("click", (datum, i, element) => changeAxis(element, "smokes", true))
 
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - margin.left + 10 + 30)
+        .attr("x", 0 - (height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("Healthcare %")
+        .attr("class", "axis-control y")
+        .on("click", (datum, i, element) => changeAxis(element, "healthcare", true))
 
+    svg.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 0 - margin.left + 10 + 60)
+        .attr("x",0 - (height / 2))
+        .attr("dy", "1em")
+        .style("text-anchor", "middle")
+        .text("Obesity %")
+        .attr("class", "axis-control y")
+        .on("click", (datum, i, element) => changeAxis(element, "obesity", true))
 
-// var circlesGroup = text.selectAll("circle").data(data)
-
-// // Add dots
-// svg.append('g')
-// .selectAll("circles")
-// .data(data)
-// .enter()
-// .append("circlesGroup")
-//     .attr("cx", function (d) { return x('data.poverty'); } )
-//     .attr("cy", function (d) { return y(d.obesity); } )
-//     .attr("r", 1.5)
-//     .style("fill", "#69b3a2")
-
-
-
-    xAxis.call(xScale)
-
-// Event listeners w/ transitions
-
-
-});
+    redraw(xValue, yValue, xValue, yValue)
+        
+})
